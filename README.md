@@ -299,16 +299,43 @@ The pipeline is designed for **read-only** interaction with remote repositories:
 
 ---
 
-## OpenShift (Future)
+## OpenShift Migration
 
-Phase 2 will migrate the pipeline to run on OpenShift:
+The pipeline has been migrated to support OpenShift deployment. All related manifests are located in the `openshift/` directory. The architecture is cleanly separated into two distinct services:
 
-- **CronJob** resources for scheduled multi-repo scans
-- **BuildConfig** to build the scanner image in-cluster
-- **NetworkPolicy** for DTrack API access control
-- **PersistentVolumeClaim** for report storage
-- Helm chart or Kustomize overlays for environment-specific configuration
-- Integration with OpenShift Pipelines (Tekton) for CI/CD triggers
+### 1. OWASP Dependency-Track Service (`openshift/dtrack/`)
+Runs the core DTrack platform securely under OpenShift's restricted SCC (enforcing non-root execution).
+- Uses the official Dependency-Track images via wrapper Dockerfiles (`api.Dockerfile` and `frontend.Dockerfile`) that patch directory permissions.
+- **Resources:** `BuildConfig`, `Deployment`, `Service`, `Route` (for API and Frontend), and `PersistentVolumeClaim` + `Deployment` for the PostgreSQL database.
+
+### 2. Git Scan Service (`openshift/scanner/`)
+Handles generating SBOMs and analyzing them on a schedule.
+- Uses a custom `scanner.Dockerfile` that creates a non-root user specifically for OpenShift.
+- **Resources:** 
+  - `CronJob` to run daily multi-repo scans.
+  - `Job` template for manual ad-hoc scans.
+  - `ConfigMap` (`configmap-repos.yaml`) to define the list of repositories to scan.
+  - `Secret` and `ConfigMap` for `DTRACK_URL` and API keys.
+
+### Deployment Instructions
+
+1. **Configure Repositories**: Edit `openshift/scanner/configmap-repos.yaml` to include your target Git repositories.
+2. **Update Placeholders**: Replace placeholders (like Git repository URIs, API keys, and Route domains) in the YAML files.
+3. **Deploy Dependency-Track**:
+   ```bash
+   oc apply -f openshift/dtrack/
+   oc start-build dtrack-apiserver-build
+   oc start-build dtrack-frontend-build
+   ```
+4. **Deploy Scanner**:
+   ```bash
+   oc apply -f openshift/scanner/
+   oc start-build sbom-scanner-build
+   ```
+5. **Run Manual Scan**:
+   ```bash
+   oc create -f openshift/scanner/job-manual.yaml
+   ```
 
 ---
 
@@ -320,13 +347,31 @@ SBOM/
 ├── .env.example                       # Environment variable template
 ├── docker-compose.yml                 # Full stack: DTrack + PostgreSQL + scanners
 ├── SyftGrypeScan/
-│   ├── Dockerfile                     # Scanner image definition
+│   ├── Dockerfile                     # Local scanner image definition
 │   ├── lib-common.sh                  # Shared functions (Syft, Grype, DTrack upload)
 │   ├── scan-git.sh                    # Multi-repo Git scanner entrypoint
 │   ├── scan-local.sh                  # Local directory scanner entrypoint
 │   ├── grype-markdown.tmpl            # Go template for Grype Markdown reports
 │   ├── repos.example.txt              # Example repos list file
 │   └── repos.txt                      # Your repos list (git-ignored)
+├── openshift/                         # OpenShift Migration Manifests
+│   ├── dtrack/                        # Dependency-Track Service
+│   │   ├── api.Dockerfile             # Wrapper for official API image
+│   │   ├── frontend.Dockerfile        # Wrapper for official Frontend image
+│   │   ├── buildconfig.yaml
+│   │   ├── dtrack-config.yaml
+│   │   ├── dtrack-deployment.yaml
+│   │   ├── dtrack-service-route.yaml
+│   │   ├── postgres-deployment.yaml
+│   │   └── postgres-pvc.yaml
+│   └── scanner/                       # Git Scan Service
+│       ├── scanner.Dockerfile         # OpenShift-specific scanner image
+│       ├── buildconfig.yaml
+│       ├── configmap-repos.yaml       # Defines repositories to scan
+│       ├── configmap-secret.yaml
+│       ├── cronjob.yaml               # Daily scheduled scan
+│       ├── job-manual.yaml            # Ad-hoc manual scan
+│       └── pvc.yaml
 └── reports/                           # Generated reports (git-ignored)
     └── <timestamp>/
         ├── pipeline-summary.md
