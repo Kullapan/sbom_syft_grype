@@ -1,0 +1,11 @@
+# 🔍 Vulnerability Report
+
+**Total Vulnerabilities:** {{len .Matches}}
+
+## Vulnerability Details
+
+| Package | Version | Type | Vulnerability | Severity | Fix Version | Data Source |
+| :--- | :--- | :--- | :--- | :---: | :--- | :--- |
+{{- range .Matches}}
+| {{.Artifact.Name}} | {{.Artifact.Version}} | {{.Artifact.Type}} | [{{.Vulnerability.ID}}](https://nvd.nist.gov/vuln/detail/{{.Vulnerability.ID}}) | {{.Vulnerability.Severity}} | {{if .Vulnerability.Fix.Versions}}{{index .Vulnerability.Fix.Versions 0}}{{else}}No Fix{{end}} | {{.Vulnerability.DataSource}} |
+{{- end}}

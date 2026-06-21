@@ -1,0 +1,18 @@
+# ============================================================
+# SBOM Pipeline — Git Repos List
+# ============================================================
+# Format: <git-url> [branch-or-tag]
+# - Column 1: Git URL (required)
+# - Column 2: Branch or tag (optional, defaults to GIT_BRANCH env or main)
+# - Lines starting with # are comments
+# - Blank lines are ignored
+# ============================================================
+
+# --- OWASP Vulnerable Apps (for testing) ---
+https://github.com/WebGoat/WebGoat.git              main
+https://github.com/OWASP/NodeGoat.git               master
+
+# --- Your organization repos (uncomment and edit) ---
+# https://github.com/your-org/payment-api.git       release/v2.1
+# https://github.com/your-org/auth-service.git      develop
+# https://github.com/your-org/frontend.git          main

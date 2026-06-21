@@ -1,0 +1,101 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: dtrack-postgres
+    environment:
+      POSTGRES_USER: dtrack
+      POSTGRES_PASSWORD: dtrack_secret
+      POSTGRES_DB: dtrack
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dtrack"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - dtrack-net
+
+  dtrack-apiserver:
+    image: dependencytrack/apiserver:latest
+    container_name: dtrack-apiserver
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      ALPINE_DATABASE_MODE: external
+      ALPINE_DATABASE_URL: jdbc:postgresql://postgres:5432/dtrack
+      ALPINE_DATABASE_DRIVER: org.postgresql.Driver
+      ALPINE_DATABASE_USERNAME: dtrack
+      ALPINE_DATABASE_PASSWORD: dtrack_secret
+    ports:
+      - "8080:8080"
+    volumes:
+      - apiserver-data:/data
+    restart: unless-stopped
+    networks:
+      - dtrack-net
+
+  dtrack-frontend:
+    image: dependencytrack/frontend:latest
+    container_name: dtrack-frontend
+    environment:
+      API_BASE_URL: http://localhost:8080
+    ports:
+      - "8081:8080"
+    depends_on:
+      - dtrack-apiserver
+    restart: unless-stopped
+    networks:
+      - dtrack-net
+
+  # ===== On-demand Scanners (use: docker compose run --rm git-scanner) =====
+
+  git-scanner:
+    build:
+      context: ./SyftGrypeScan
+      dockerfile: Dockerfile
+    image: sbom-scanner:latest
+    container_name: sbom-git-scanner
+    profiles:
+      - scanner
+    entrypoint: ["/bin/bash"]
+    command: ["/app/scan-git.sh"]
+    volumes:
+      - ./reports:/reports
+      - ${GIT_REPOS_FILE_HOST:-./SyftGrypeScan/repos.example.txt}:/repos-config/repos.txt:ro
+    environment:
+      GIT_REPOS_FILE: /repos-config/repos.txt
+    env_file:
+      - .env
+    networks:
+      - dtrack-net
+
+  local-scanner:
+    build:
+      context: ./SyftGrypeScan
+      dockerfile: Dockerfile
+    image: sbom-scanner:latest
+    container_name: sbom-local-scanner
+    profiles:
+      - scanner
+    entrypoint: ["/bin/bash"]
+    command: ["/app/scan-local.sh"]
+    volumes:
+      - ./reports:/reports
+      - ${LOCAL_SCAN_PATH:-.}:/scan-target:ro
+    env_file:
+      - .env
+    networks:
+      - dtrack-net
+
+volumes:
+  postgres-data:
+  apiserver-data:
+
+networks:
+  dtrack-net:
+    driver: bridge

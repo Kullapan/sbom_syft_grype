@@ -1,0 +1,13 @@
+# Local reports and logs
+/reports/
+/SyftGrypeScan/repos.txt
+
+# Environment variables
+.env
+
+# Workspace and temporary files
+/workspace/
+/scan-target/
+*.log
+.tmp/
+.DS_Store
