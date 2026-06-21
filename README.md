@@ -117,6 +117,8 @@ docker compose build git-scanner
 
 ### 3a. Scan Git Repos (Multi-Repo via File)
 
+You can scan multiple repositories in one go by providing a list in a text file.
+
 ```bash
 # Create your repos list from the example
 cp SyftGrypeScan/repos.example.txt SyftGrypeScan/repos.txt
@@ -124,8 +126,20 @@ cp SyftGrypeScan/repos.example.txt SyftGrypeScan/repos.txt
 # Edit SyftGrypeScan/repos.txt — one repo per line:
 #   https://github.com/org/repo.git  main  my-project-name
 #   https://github.com/org/other.git
+```
 
-# Run the scanner
+**Method A: Using raw Docker command (with `.env` file)**
+```bash
+docker run --rm \
+  --network sbom_dtrack-net \
+  -v "%cd%/SyftGrypeScan/repos.txt:/repos-config/repos.txt:ro" \
+  -v "%cd%/reports:/reports" \
+  --env-file .env \
+  sbom-scanner /app/scan-git.sh
+```
+
+**Method B: Using Docker Compose**
+```bash
 docker compose --profile scanner run --rm git-scanner
 ```
 
