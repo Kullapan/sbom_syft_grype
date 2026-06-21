@@ -1,0 +1,81 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dtrack-apiserver
+  labels:
+    app: dtrack
+    component: apiserver
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dtrack
+      component: apiserver
+  template:
+    metadata:
+      labels:
+        app: dtrack
+        component: apiserver
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: apiserver
+          image: dtrack-apiserver:latest # ImageStream reference
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          envFrom:
+            - configMapRef:
+                name: dtrack-config
+            - secretRef:
+                name: dtrack-secret
+          # Readiness and Liveness probes can be added here
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dtrack-frontend
+  labels:
+    app: dtrack
+    component: frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dtrack
+      component: frontend
+  template:
+    metadata:
+      labels:
+        app: dtrack
+        component: frontend
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: frontend
+          image: dtrack-frontend:latest # ImageStream reference
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080 # Based on non-root nginx config in frontend.Dockerfile
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          env:
+            - name: API_BASE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: dtrack-config
+                  key: API_BASE_URL

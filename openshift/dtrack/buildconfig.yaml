@@ -1,0 +1,63 @@
+apiVersion: image.openshift.io/v1
+kind: ImageStream
+metadata:
+  name: dtrack-apiserver
+  labels:
+    app: dtrack
+---
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  name: dtrack-apiserver-build
+  labels:
+    app: dtrack
+spec:
+  output:
+    to:
+      kind: ImageStreamTag
+      name: dtrack-apiserver:latest
+  source:
+    type: Git
+    git:
+      # Placeholder: Replace with the actual URL to your SBOM repository (where openshift/ is located)
+      uri: "https://github.com/your-org/sbom-pipeline.git"
+    contextDir: "/"
+  strategy:
+    type: Docker
+    dockerStrategy:
+      dockerfilePath: "openshift/dtrack/api.Dockerfile"
+  triggers:
+    - type: ConfigChange
+    - type: ImageChange
+---
+apiVersion: image.openshift.io/v1
+kind: ImageStream
+metadata:
+  name: dtrack-frontend
+  labels:
+    app: dtrack
+---
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  name: dtrack-frontend-build
+  labels:
+    app: dtrack
+spec:
+  output:
+    to:
+      kind: ImageStreamTag
+      name: dtrack-frontend:latest
+  source:
+    type: Git
+    git:
+      # Placeholder: Replace with the actual URL to your SBOM repository (where openshift/ is located)
+      uri: "https://github.com/your-org/sbom-pipeline.git"
+    contextDir: "/"
+  strategy:
+    type: Docker
+    dockerStrategy:
+      dockerfilePath: "openshift/dtrack/frontend.Dockerfile"
+  triggers:
+    - type: ConfigChange
+    - type: ImageChange

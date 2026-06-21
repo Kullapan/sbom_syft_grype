@@ -1,0 +1,50 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: sbom-scanner-cronjob
+  labels:
+    app: sbom-scanner
+spec:
+  schedule: "0 0 * * *" # Every day at midnight
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app: sbom-scanner
+        spec:
+          restartPolicy: OnFailure
+          securityContext:
+            runAsNonRoot: true
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+            - name: scanner
+              image: sbom-scanner:latest # ImageStream reference
+              imagePullPolicy: Always
+              securityContext:
+                allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
+              envFrom:
+                - configMapRef:
+                    name: sbom-scanner-config
+                - secretRef:
+                    name: sbom-scanner-secret
+              env:
+                - name: GIT_REPOS_FILE
+                  value: "/repos-config/repos.txt"
+              volumeMounts:
+                - name: reports-volume
+                  mountPath: /reports
+                - name: repos-config-volume
+                  mountPath: /repos-config
+          volumes:
+            - name: reports-volume
+              persistentVolumeClaim:
+                claimName: sbom-scanner-reports
+            - name: repos-config-volume
+              configMap:
+                name: sbom-scanner-repos

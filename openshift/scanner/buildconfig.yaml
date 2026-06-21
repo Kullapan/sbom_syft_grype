@@ -1,0 +1,31 @@
+apiVersion: image.openshift.io/v1
+kind: ImageStream
+metadata:
+  name: sbom-scanner
+  labels:
+    app: sbom-scanner
+---
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  name: sbom-scanner-build
+  labels:
+    app: sbom-scanner
+spec:
+  output:
+    to:
+      kind: ImageStreamTag
+      name: sbom-scanner:latest
+  source:
+    type: Git
+    git:
+      # Placeholder: Replace with the actual URL to your SBOM repository
+      uri: "https://github.com/your-org/sbom-pipeline.git"
+    contextDir: "/"
+  strategy:
+    type: Docker
+    dockerStrategy:
+      dockerfilePath: "openshift/scanner/scanner.Dockerfile"
+  triggers:
+    - type: ConfigChange
+    - type: ImageChange

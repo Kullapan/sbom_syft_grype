@@ -1,0 +1,29 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dtrack-config
+  labels:
+    app: dtrack
+data:
+  # General settings
+  EXTRA_JAVA_OPTIONS: "-Xmx2G"
+  
+  # Alpine Database Settings
+  ALPINE_DATABASE_MODE: "external"
+  ALPINE_DATABASE_URL: "jdbc:postgresql://postgres:5432/dtrack"
+  ALPINE_DATABASE_DRIVER: "org.postgresql.Driver"
+  
+  # API Server settings
+  API_BASE_URL: "http://api-dtrack.example.com" # Placeholder: Replace with actual Route URL
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: dtrack-secret
+  labels:
+    app: dtrack
+type: Opaque
+stringData:
+  # Database Credentials (must match postgres-secret)
+  ALPINE_DATABASE_USERNAME: "dtrack"
+  ALPINE_DATABASE_PASSWORD: "dtrack_password"

@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sbom-scanner-repos
+  labels:
+    app: sbom-scanner
+data:
+  repos.txt: |
+    # List your repositories here. One per line.
+    # Format: <repo_url> [branch]
+    # Example:
+    # https://github.com/anchore/syft.git main
+    # https://github.com/anchore/grype.git
